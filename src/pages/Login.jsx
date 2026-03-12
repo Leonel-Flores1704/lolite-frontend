@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { apiFetch } from '../services/api'
+import { clearSession, setSession } from '../utils/auth'
 
 function LoginInput({
   id,
@@ -48,7 +50,6 @@ function LoginInput({
 
 export default function Login() {
   const navigate = useNavigate()
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -58,33 +59,31 @@ export default function Login() {
     event.preventDefault()
     setError('')
     setLoading(true)
+    clearSession()
 
     try {
-      const response = await fetch(`${apiUrl}/api/login`, {
+      const payload = await apiFetch('/api/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         },
         body: JSON.stringify(form),
       })
 
-      const contentType = response.headers.get('content-type') || ''
-      const payload = contentType.includes('application/json')
-        ? await response.json()
-        : { message: 'Respuesta no válida del servidor' }
-
-      if (!response.ok) {
-        setError(payload?.message || payload?.errors?.email?.[0] || 'Credenciales inválidas')
-        return
+      if (!payload?.token) {
+        throw new Error('La respuesta del servidor no incluyó un token válido')
       }
 
-      localStorage.setItem('token', payload.token)
-      localStorage.setItem('user', JSON.stringify(payload.user || {}))
+      setSession({ token: payload.token, user: payload.user })
       navigate('/', { replace: true })
     } catch (err) {
-      setError(err.message || 'Error de conexión con el servidor')
+      const backendMessage = err?.payload?.errors?.email?.[0]
+        || err?.payload?.message
+        || err?.message
+        || 'No fue posible iniciar sesión'
+
+      clearSession()
+      setError(backendMessage)
     } finally {
       setLoading(false)
     }

@@ -26,13 +26,10 @@ import Pagos from './pages/Pagos'
 import Reportes from './pages/Reportes'
 import Configuracion from './pages/Configuracion'
 import Login from './pages/Login'
-
-function hasToken() {
-  return Boolean(localStorage.getItem('token'))
-}
+import { hasSession } from './utils/auth'
 
 function ProtectedRoute({ children }) {
-  if (!hasToken()) return <Navigate to="/login" replace />
+  if (!hasSession()) return <Navigate to="/login" replace />
   return children
 }
 
@@ -104,8 +101,8 @@ export default function App() {
             <Route path="/pagos" element={<ProtectedRoute><Pagos /></ProtectedRoute>} />
             <Route path="/reportes" element={<ProtectedRoute><Reportes /></ProtectedRoute>} />
             <Route path="/configuracion" element={<ProtectedRoute><Configuracion /></ProtectedRoute>} />
-            <Route path="/login" element={hasToken() ? <Navigate to="/" replace /> : <Login />} />
-            <Route path="*" element={<Navigate to={hasToken() ? '/' : '/login'} replace />} />
+            <Route path="/login" element={hasSession() ? <Navigate to="/" replace /> : <Login />} />
+            <Route path="*" element={<Navigate to={hasSession() ? '/' : '/login'} replace />} />
           </Routes>
         </main>
       </div>
